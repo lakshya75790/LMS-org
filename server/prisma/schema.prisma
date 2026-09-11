@@ -1,0 +1,567 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SuperAdmin
+  Admin
+  Instructor
+  Employee
+}
+
+model Organization {
+  id                  String               @id @default(uuid())
+  name                String
+  code                String               @unique
+  description         String?
+  status              String               @default("ACTIVE")
+  totalLicenses       Int                  @default(5)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  
+  users               User[]
+  departments         Department[]
+  categories          TrainingCategory[]
+  trainings           Training[]
+  quizzes             Quiz[]
+  assignments         Assignment[]
+  trainingAssignments TrainingAssignment[]
+  autoAssignmentRules AutoAssignmentRule[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  certificates        Certificate[]
+  certificateTemplate CertificateTemplate?
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("organizations")
+}
+
+model Department {
+  id             String       @id @default(uuid())
+  name           String
+  organizationId String
+  description    String?
+  jobRoles       String[]     @default([])
+  status         String       @default("active")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users          User[]
+  trainings      Training[]
+
+  @@unique([name, organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, status, name])
+  @@map("departments")
+}
+
+model User {
+  id                     String                 @id @default(uuid())
+  name                   String
+  email                  String                 @unique
+  password               String
+  role                   Role
+  organizationId         String?
+  departmentId           String?
+  jobRole                String?
+  isProfileComplete      Boolean                @default(false)
+  status                 String                 @default("active")
+  profilePicture         String?
+  profilePicturePublicId String?
+  isCustomAvatar         Boolean                @default(false)
+  passwordResetOtpHash   String?
+  passwordResetOtpExpiresAt DateTime?
+  passwordResetOtpUsed   Boolean?               @default(false)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  organization           Organization?          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department             Department?            @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  
+  createdTrainings       Training[]             @relation("TrainingCreatedBy")
+  createdQuizzes         Quiz[]                 @relation("QuizCreatedBy")
+  createdAssignments     Assignment[]           @relation("AssignmentCreatedBy")
+  trainingAssignments    TrainingAssignment[]   @relation("EmployeeAssignments")
+  assignedTrainings      TrainingAssignment[]   @relation("AssignedByAdmin")
+  quizAttempts           QuizAttempt[]          @relation("EmployeeQuizAttempts")
+  assignmentSubmissions  AssignmentSubmission[] @relation("EmployeeSubmissions")
+  reviewedSubmissions    AssignmentSubmission[] @relation("ReviewerSubmissions")
+  notifications          Notification[]         @relation("RecipientNotifications")
+  auditLogs              AuditLog[]
+  createdRules           AutoAssignmentRule[]   @relation("RuleCreatedBy")
+  trainingProgresses     TrainingProgress[]
+  extensionsGiven        ExtensionHistory[]     @relation("ExtendedBy")
+  certificates           Certificate[]          @relation("EmployeeCertificates")
+
+  @@index([organizationId, role])
+  @@index([organizationId, role, createdAt])
+  @@index([organizationId, role, name])
+  @@index([organizationId, departmentId])
+  @@map("users")
+}
+
+model TrainingCategory {
+  id             String       @id @default(uuid())
+  name           String
+  organizationId String
+  description    String?
+  status         String       @default("active")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  trainings      Training[]
+
+  @@unique([name, organizationId])
+  @@index([organizationId, status])
+  @@map("training_categories")
+}
+
+model Training {
+  id                  String               @id @default(uuid())
+  title               String
+  description         String
+  benefits            String[]             @default([])
+  categoryId          String
+  departmentId        String?
+  createdBy           String
+  organizationId      String
+  durationDays        Int                  @default(30)
+  thumbnailUrl        String?
+  thumbnailPublicId   String?
+  isMandatory         Boolean              @default(false)
+  isPublished         Boolean              @default(false)
+  status              String               @default("draft")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  category            TrainingCategory     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  department          Department?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  instructor          User                 @relation("TrainingCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  sections            TrainingSection[]
+  quizzes             Quiz[]
+  assignments         Assignment[]
+  trainingAssignments TrainingAssignment[]
+  autoAssignmentRules AutoAssignmentRule[]
+  trainingProgresses  TrainingProgress[]
+  certificates        Certificate[]
+
+  @@index([organizationId, isPublished])
+  @@index([organizationId, isPublished, title])
+  @@index([organizationId, status, createdAt])
+  @@index([createdBy, organizationId, status, createdAt])
+  @@index([createdBy])
+  @@index([categoryId])
+  @@map("trainings")
+}
+
+model TrainingSection {
+  id          String               @id @default(uuid())
+  trainingId  String
+  title       String
+  description String?
+  order       Int                  @default(1)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  training    Training             @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  subSections TrainingSubSection[]
+
+  @@index([trainingId, order])
+  @@map("training_sections")
+}
+
+model TrainingSubSection {
+  id            String             @id @default(uuid())
+  sectionId     String
+  title         String
+  description   String?
+  type          String             @default("video")
+  videoUrl      String?
+  videoPublicId String?
+  videoDuration Float?            @default(0)
+  textContent   String?
+  hasQuiz       Boolean            @default(false)
+  quizId        String?
+  hasAssignment Boolean            @default(false)
+  assignmentId  String?
+  order         Int                @default(1)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  section      TrainingSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  assignment   Assignment?        @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  pdfResources PdfResource[]
+
+  @@index([sectionId, order])
+  @@map("training_sub_sections")
+}
+
+model PdfResource {
+  id           String             @id @default(uuid())
+  subSectionId String
+  title        String
+  pdfUrl       String             @default("")
+  pdfPublicId  String?
+  originalName String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  subSection   TrainingSubSection @relation(fields: [subSectionId], references: [id], onDelete: Cascade)
+
+  @@index([subSectionId])
+  @@map("pdf_resources")
+}
+
+model Quiz {
+  id                  String              @id @default(uuid())
+  title               String
+  description         String?
+  trainingId          String
+  subSectionId        String?
+  passingScorePercent Float               @default(70)
+  timeLimitMinutes    Int?
+  createdBy           String
+  organizationId      String
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  training            Training            @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  instructor          User                @relation("QuizCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  questions           QuizQuestion[]
+  attempts            QuizAttempt[]
+
+  @@index([trainingId])
+  @@map("quizzes")
+}
+
+enum QuestionType {
+  MCQ
+  TRUE_FALSE
+  FILL_IN_BLANK
+}
+
+model QuizQuestion {
+  id                 String       @id @default(uuid())
+  quizId             String
+  questionText       String
+  questionType       QuestionType @default(MCQ)
+  options            String[]
+  correctAnswerIndex Int?
+  correctAnswerText  String?
+  explanation        String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  quiz               Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id                   String              @id @default(uuid())
+  quizId               String
+  employeeId           String
+  trainingAssignmentId String?
+  attemptNumber        Int                 @default(1)
+  totalScore           Float               @default(0)
+  maxScore             Float               @default(0)
+  percentage           Float               @default(0)
+  passed               Boolean             @default(false)
+  status               String              @default("completed")
+  startTime            DateTime?           @default(now())
+  endTime              DateTime?
+  submittedAt          DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  quiz                 Quiz                 @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  trainingAssignment   TrainingAssignment?  @relation(fields: [trainingAssignmentId], references: [id], onDelete: SetNull)
+  employee             User                 @relation("EmployeeQuizAttempts", fields: [employeeId], references: [id], onDelete: Cascade)
+  answers              QuizAttemptAnswer[]
+
+  @@index([employeeId, status])
+  @@index([quizId])
+  @@map("quiz_attempts")
+}
+
+model QuizAttemptAnswer {
+  id                  String        @id @default(uuid())
+  quizAttemptId       String
+  questionIndex       Int
+  questionText        String
+  questionType        QuestionType? @default(MCQ)
+  selectedOptionIndex Int?
+  selectedAnswerText  String?
+  correctAnswerIndex  Int?
+  correctAnswerText   String?
+  options             String[]
+  isCorrect           Boolean
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  quizAttempt         QuizAttempt   @relation(fields: [quizAttemptId], references: [id], onDelete: Cascade)
+
+  @@index([quizAttemptId])
+  @@map("quiz_attempt_answers")
+}
+
+model Assignment {
+  id             String                 @id @default(uuid())
+  title          String
+  instructions   String
+  trainingId     String
+  subSectionId   String?
+  maxScore       Int                    @default(100)
+  createdBy      String
+  organizationId String
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  training       Training               @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  instructor     User                   @relation("AssignmentCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  submissions    AssignmentSubmission[]
+  subSections    TrainingSubSection[]
+
+  @@index([trainingId])
+  @@map("assignments")
+}
+
+model AssignmentSubmission {
+  id                   String              @id @default(uuid())
+  assignmentId         String
+  trainingAssignmentId String?
+  employeeId           String
+  submissionType       String
+  githubUrl            String?
+  fileUrl              String?
+  filePublicId         String?
+  status               String              @default("submitted")
+  grade                String?
+  score                Float               @default(0)
+  feedback             String?
+  reviewedBy           String?
+  submittedAt          DateTime            @default(now())
+  reviewedAt           DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  assignment           Assignment          @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  trainingAssignment   TrainingAssignment? @relation(fields: [trainingAssignmentId], references: [id], onDelete: SetNull)
+  employee             User                @relation("EmployeeSubmissions", fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewer             User?               @relation("ReviewerSubmissions", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([assignmentId, status])
+  @@index([employeeId])
+  @@index([employeeId, status, reviewedAt])
+  @@map("assignment_submissions")
+}
+
+model TrainingAssignment {
+  id                 String                 @id @default(uuid())
+  employeeId         String
+  trainingId         String
+  assignedBy         String?
+  organizationId     String
+  assignmentType     String
+  assignedDate       DateTime               @default(now())
+  deadline           DateTime
+  status             String                 @default("Assigned")
+  progressPercentage Float                  @default(0)
+  completedDate      DateTime?
+  overdueCount       Int                    @default(0)
+  isLocked           Boolean                @default(false)
+  lockedAt           DateTime?
+  unlockedAt         DateTime?
+  lockedReason       String?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  employee           User                   @relation("EmployeeAssignments", fields: [employeeId], references: [id], onDelete: Cascade)
+  training           Training               @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  assigner           User?                  @relation("AssignedByAdmin", fields: [assignedBy], references: [id], onDelete: SetNull)
+  organization       Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  extensionHistory   ExtensionHistory[]
+  progress           TrainingProgress?
+  quizAttempts       QuizAttempt[]
+  assignmentSubmissions AssignmentSubmission[]
+  certificate        Certificate?
+
+  @@unique([employeeId, trainingId])
+  @@index([trainingId])
+  @@index([organizationId, status])
+  @@index([organizationId, trainingId])
+  @@index([employeeId, organizationId])
+  @@index([employeeId, assignedDate])
+  @@index([employeeId, organizationId, assignedDate])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, assignedDate])
+  @@map("training_assignments")
+}
+
+model ExtensionHistory {
+  id                   String             @id @default(uuid())
+  trainingAssignmentId String
+  extendedBy           String
+  extendedTo           DateTime
+  extendedAt           DateTime           @default(now())
+  reason               String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  trainingAssignment   TrainingAssignment @relation(fields: [trainingAssignmentId], references: [id], onDelete: Cascade)
+  extendedByUser       User               @relation("ExtendedBy", fields: [extendedBy], references: [id], onDelete: Cascade)
+
+  @@map("extension_histories")
+}
+
+model TrainingProgress {
+  id                       String             @id @default(uuid())
+  trainingAssignmentId     String             @unique
+  employeeId               String
+  trainingId               String
+  completedSubSectionIds   String[]           @default([])
+  lastAccessedSubSectionId String?
+  progressPercentage       Float              @default(0)
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+
+  trainingAssignment       TrainingAssignment @relation(fields: [trainingAssignmentId], references: [id], onDelete: Cascade)
+  employee                 User               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  training                 Training           @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+
+  @@map("training_progresses")
+}
+
+model AutoAssignmentRule {
+  id                 String       @id @default(uuid())
+  organizationId     String
+  trainingId         String
+  createdBy          String
+  status             String       @default("active")
+  customDeadlineDays Int          @default(30)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  training           Training     @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  creator            User         @relation("RuleCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, trainingId])
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+  @@map("auto_assignment_rules")
+}
+
+model Notification {
+  id                String       @id @default(uuid())
+  recipientId       String?
+  organizationId    String
+  role              String
+  type              String
+  title             String
+  message           String
+  relatedEntityType String?
+  relatedEntityId   String?
+  isRead            Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  recipient         User?        @relation("RecipientNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, recipientId, isRead])
+  @@index([organizationId, role, isRead])
+  @@index([organizationId, createdAt])
+  @@index([recipientId, createdAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  userId         String
+  userName       String
+  userRole       String
+  organizationId String
+  action         String
+  targetType     String?
+  targetId       String?
+  details        String?
+  timestamp      DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, timestamp])
+  @@map("audit_logs")
+}
+
+model CertificateTemplate {
+  id             String       @id @default(uuid())
+  organizationId String       @unique
+  title          String       @default("CERTIFICATE OF COMPLETION")
+  primaryColor   String       @default("#1E3A8A")
+  accentColor    String       @default("#D97706")
+  fontFamily     String       @default("Inter")
+  borderStyle    String       @default("classic_gold")
+  layoutStyle    String       @default("centered")
+  logoUrl           String?
+  logoPublicId      String?
+  logoPosition      String?      @default("top-center")
+  logoWidth         Int?         @default(120)
+  signatureUrl      String?
+  signaturePublicId String?
+  signatureName     String?
+  signaturePosition String?      @default("bottom-right")
+  signatureWidth    Int?         @default(160)
+  createdAt         DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("certificate_templates")
+}
+
+model Certificate {
+  id                   String             @id @default(uuid())
+  certificateId        String             @unique
+  trainingAssignmentId String             @unique
+  employeeId           String
+  trainingId           String
+  organizationId       String
+  issueDate            DateTime           @default(now())
+  completionDate       DateTime
+  templateSnapshot     Json
+
+  trainingAssignment   TrainingAssignment @relation(fields: [trainingAssignmentId], references: [id], onDelete: Cascade)
+  employee             User               @relation("EmployeeCertificates", fields: [employeeId], references: [id], onDelete: Cascade)
+  training             Training           @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  organization         Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([employeeId])
+  @@index([organizationId])
+  @@index([trainingId])
+  @@index([organizationId, createdAt])
+  @@map("certificates")
+}
