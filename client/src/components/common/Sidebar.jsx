@@ -82,10 +82,10 @@ export const Sidebar = ({ mobileOpen = false, onCloseMobile = () => {} }) => {
           <span className="font-extrabold text-lg tracking-tight text-white font-heading">LMS</span>
         </div>
 
-        {/* Mobile Header Close */}
+        {/* Mobile/Tablet Header Close */}
         <button
           onClick={onCloseMobile}
-          className="md:hidden p-1.5 rounded-lg text-emerald-200 hover:text-white hover:bg-white/10 transition-colors"
+          className="xl:hidden p-1.5 rounded-lg text-emerald-200 hover:text-white hover:bg-white/10 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -147,13 +147,13 @@ export const Sidebar = ({ mobileOpen = false, onCloseMobile = () => {} }) => {
   return (
     <>
       {/* Desktop Sidebar (100vh Sticky Viewport Height) */}
-      <aside className="hidden md:block w-64 shrink-0 h-screen sticky top-0 z-30">
+      <aside className="hidden xl:block w-64 shrink-0 h-screen sticky top-0 z-30">
         {sidebarContent}
       </aside>
 
-      {/* Mobile Drawer Overlay */}
+      {/* Mobile/Tablet Drawer Overlay */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
+        <div className="fixed inset-0 z-50 xl:hidden flex">
           <div
             className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
             onClick={onCloseMobile}

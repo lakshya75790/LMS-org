@@ -70,13 +70,14 @@ export const SuperAdminDashboard = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchOrganizations = async (pageNum = page, searchVal = searchTerm) => {
+  const fetchOrganizations = async (pageNum = page, searchVal = searchTerm, skipCache = false) => {
     const targetPage = typeof pageNum === 'number' && !isNaN(pageNum) ? pageNum : page;
     const targetSearch = typeof searchVal === 'string' ? searchVal : searchTerm;
     setLoading(true);
     try {
       const res = await api.get(
-        `/super-admin/organizations?page=${targetPage}&limit=${limit}&search=${encodeURIComponent(targetSearch)}`
+        `/super-admin/organizations?page=${targetPage}&limit=${limit}&search=${encodeURIComponent(targetSearch)}`,
+        skipCache ? { skipCache: true } : {}
       );
       setOrganizations(res.data.data.organizations || []);
       if (res.data.data.pagination) {
@@ -160,7 +161,7 @@ export const SuperAdminDashboard = () => {
         adminEmail: '',
         adminPassword: ''
       });
-      fetchOrganizations();
+      fetchOrganizations(1, searchTerm, true);
     } catch (err) {
       addToast('error', err.response?.data?.message || 'Failed to create organization');
     } finally {
@@ -191,7 +192,7 @@ export const SuperAdminDashboard = () => {
       addToast('success', 'Organization updated successfully!');
       setShowEditModal(false);
       setSelectedOrg(null);
-      fetchOrganizations();
+      fetchOrganizations(page, searchTerm, true);
     } catch (err) {
       addToast('error', err.response?.data?.message || 'Failed to update organization');
     } finally {
@@ -207,12 +208,15 @@ export const SuperAdminDashboard = () => {
       setOrganizations((prev) =>
         prev.map((o) => (o.id === orgId || o._id === orgId ? { ...o, status: newStatus } : o))
       );
-      await api.put(`/super-admin/organizations/${orgId}/status`, { status: newStatus });
-      addToast('success', `Organization status set to ${newStatus}`);
-      fetchOrganizations();
+      const res = await api.put(`/super-admin/organizations/${orgId}/status`, { status: newStatus });
+      const updatedOrg = res.data?.data?.organization;
+      const actualStatus = updatedOrg?.status ? String(updatedOrg.status).toUpperCase() : newStatus;
+
+      addToast('success', `Organization status set to ${actualStatus}`);
+      fetchOrganizations(page, searchTerm, true);
     } catch (err) {
       addToast('error', err.response?.data?.message || 'Failed to update organization status');
-      fetchOrganizations();
+      fetchOrganizations(page, searchTerm, true);
     }
   };
 

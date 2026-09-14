@@ -9,14 +9,28 @@ const ApiResponse = require('../utils/apiResponse');
 const getAuditLogs = async (req, res, next) => {
   try {
     const orgId = String(req.user.organizationId.id || req.user.organizationId._id || req.user.organizationId);
+    const limit = Math.max(1, Math.min(300, parseInt(req.query.limit, 10) || 100));
 
     const logs = await prisma.auditLog.findMany({
       where: { organizationId: orgId },
-      include: {
-        user: { select: { id: true, name: true, email: true, profilePicture: true, role: true } }
+      select: {
+        id: true,
+        userId: true,
+        userName: true,
+        userRole: true,
+        organizationId: true,
+        action: true,
+        targetType: true,
+        targetId: true,
+        details: true,
+        timestamp: true,
+        createdAt: true,
+        user: {
+          select: { id: true, name: true, email: true, role: true }
+        }
       },
-      orderBy: { timestamp: 'desc' },
-      take: 300
+      orderBy: { createdAt: 'desc' },
+      take: limit
     });
 
     const auditLogs = logs.map(log => {

@@ -28,7 +28,7 @@ router.put('/auto-rules/:id/reactivate', authorizeRoles('Admin'), reactivateAuto
 router.post('/assign', authorizeRoles('Admin'), assignTraining);
 
 // Employee & All Assignments Routes
-router.get('/my-assignments', authorizeRoles('Employee'), getMyAssignments);
+router.get('/my-assignments', authorizeRoles('Employee'), cacheMiddleware(), getMyAssignments);
 router.get('/all', authorizeRoles('Admin', 'Instructor'), cacheMiddleware(), getAllAssignments);
 
 router.put('/:assignmentId/extend-deadline', authorizeRoles('Instructor', 'Admin'), extendDeadline);

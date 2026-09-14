@@ -26,11 +26,11 @@ export const Navbar = ({ onToggleMobileSidebar = () => {} }) => {
   return (
     <>
       <header className="sticky top-0 z-40 w-full h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between shadow-xs">
-        {/* Left: Mobile Toggle & Organization Name */}
+        {/* Left: Mobile/Tablet Toggle & Organization Name */}
         <div className="flex items-center space-x-3 sm:space-x-4">
           <button
             onClick={onToggleMobileSidebar}
-            className="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors focus:outline-none cursor-pointer"
+            className="xl:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors focus:outline-none cursor-pointer"
             aria-label="Toggle Navigation"
           >
             <Menu className="w-5 h-5" />

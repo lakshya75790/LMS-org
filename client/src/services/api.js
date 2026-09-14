@@ -19,11 +19,11 @@ const api = axios.create({
 // In-flight GET request deduplicator and short-lived client-side response cache
 const pendingGetRequests = new Map();
 const responseCache = new Map();
-const DEFAULT_TTL = 10000; // 10 seconds memory TTL
+const DEFAULT_TTL = 60000; // 60 seconds memory TTL for read endpoints (invalidated automatically on mutations)
 
 export const clearApiCache = (url = '') => {
-  if (url && (url.includes('/notifications') || url.includes('/progress') || url.includes('/status') || url.includes('/auto-rules'))) {
-    return; // Do not clear general entity cache for notification reads, progress pings, user status updates, or auto-rule toggles
+  if (url && (url.includes('/notifications') || url.includes('/progress') || url.includes('/auto-rules') || url.includes('/auth/login') || url.includes('/auth/logout') || url.includes('/auth/me'))) {
+    return; // Auth operations and high-frequency read/ping endpoints do not mutate entity state
   }
   responseCache.clear();
 };

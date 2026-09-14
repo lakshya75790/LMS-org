@@ -212,7 +212,6 @@ const login = async (req, res, next) => {
 
     const cleanEmail = email.toLowerCase().trim();
 
-    // Fast flat query for User record without heavy 3-table relational joins
     const user = await prisma.user.findUnique({
       where: { email: cleanEmail },
       select: {
@@ -226,7 +225,9 @@ const login = async (req, res, next) => {
         departmentId: true,
         jobRole: true,
         isProfileComplete: true,
-        profilePicture: true
+        profilePicture: true,
+        organization: { select: { id: true, name: true, code: true, status: true } },
+        department: { select: { id: true, name: true, jobRoles: true } }
       }
     });
 
@@ -243,36 +244,13 @@ const login = async (req, res, next) => {
       throw new ApiError(403, 'Your account has been deactivated. Please contact your administrator.');
     }
 
-    // Parallel fetch of organization and department details only after successful auth
-    const orgPromise = user.organizationId
-      ? prisma.organization.findUnique({
-          where: { id: user.organizationId },
-          select: { id: true, name: true, code: true, status: true }
-        })
-      : Promise.resolve(null);
-
-    const deptPromise = user.departmentId
-      ? prisma.department.findUnique({
-          where: { id: user.departmentId },
-          select: { id: true, name: true, jobRoles: true }
-        })
-      : Promise.resolve(null);
-
-    const [organization, department] = await Promise.all([orgPromise, deptPromise]);
-
-    if (user.role !== 'SuperAdmin' && organization && String(organization.status || 'ACTIVE').toUpperCase() === 'INACTIVE') {
+    if (user.role !== 'SuperAdmin' && user.organization && String(user.organization.status || 'ACTIVE').toUpperCase() === 'INACTIVE') {
       throw new ApiError(403, 'Your organization has been deactivated by the Super Admin. Please contact your administrator.');
     }
 
-    const fullUser = {
-      ...user,
-      organization,
-      department
-    };
+    generateTokenAndSetCookie(res, user.id, user.role, user.organizationId, user.name);
 
-    generateTokenAndSetCookie(res, fullUser.id, fullUser.role, fullUser.organizationId, fullUser.name);
-
-    const userObj = formatUserResponse(fullUser);
+    const userObj = formatUserResponse(user);
 
     res.status(200).json(
       new ApiResponse(

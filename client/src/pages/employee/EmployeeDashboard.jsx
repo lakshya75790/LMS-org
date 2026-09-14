@@ -114,7 +114,7 @@ export const EmployeeDashboard = () => {
       </div>
 
       {/* SECTION 2: 5 Summary Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Assigned Courses */}
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-between transition-all hover:border-slate-300">
           <div className="flex items-center space-x-3.5">

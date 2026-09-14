@@ -8,11 +8,12 @@ const {
 } = require('../controllers/categoryController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
+const { cacheMiddleware } = require('../middleware/cacheMiddleware');
 
 router.use(protect);
 
 router.route('/')
-  .get(getCategories)
+  .get(cacheMiddleware(), getCategories)
   .post(authorizeRoles('Admin'), createCategory);
 
 router.route('/:id')

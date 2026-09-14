@@ -97,22 +97,30 @@ const getInstructorCertificates = async (req, res, next) => {
   try {
     const userId = String(req.user.id || req.user._id);
 
-    const certificates = await prisma.certificate.findMany({
-      where: {
-        training: { createdBy: userId }
-      },
-      include: {
-        employee: {
-          select: { id: true, name: true, email: true, department: { select: { id: true, name: true } } }
-        },
-        training: { select: { id: true, title: true } },
-        organization: { select: { id: true, name: true, code: true } }
-      },
-      orderBy: { completionDate: 'desc' }
+    const ownedTrainings = await prisma.training.findMany({
+      where: { createdBy: userId },
+      select: { id: true }
     });
+    const ownedTrainingIds = ownedTrainings.map(t => t.id);
+
+    const certificatesList = ownedTrainingIds.length > 0
+      ? await prisma.certificate.findMany({
+          where: {
+            trainingId: { in: ownedTrainingIds }
+          },
+          include: {
+            employee: {
+              select: { id: true, name: true, email: true, department: { select: { id: true, name: true } } }
+            },
+            training: { select: { id: true, title: true } },
+            organization: { select: { id: true, name: true, code: true } }
+          },
+          orderBy: { completionDate: 'desc' }
+        })
+      : [];
 
     res.status(200).json(
-      new ApiResponse(200, { certificates: withId(certificates) }, 'Instructor course certificates retrieved successfully')
+      new ApiResponse(200, { certificates: withId(certificatesList) }, 'Instructor course certificates retrieved successfully')
     );
   } catch (error) {
     next(error);

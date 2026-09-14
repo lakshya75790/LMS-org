@@ -1,4 +1,4 @@
-const { getRedisCache, setRedisCache, delRedisCache } = require('../config/redisClient');
+const { getRedisCache, setRedisCache, delRedisCache, flushRedisCache } = require('../config/redisClient');
 
 const responseCache = new Map();
 const DEFAULT_SERVER_TTL = 10000; // 10 seconds default
@@ -61,11 +61,29 @@ const cacheMiddleware = (durationMs = DEFAULT_SERVER_TTL) => {
   };
 };
 
-const invalidateServerCache = (req, res, next) => {
+const invalidateServerCache = async (req, res, next) => {
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
     const url = req.originalUrl || req.url || '';
-    if (!url.includes('/notifications') && !url.includes('/progress') && !url.includes('/status') && !url.includes('/auto-rules')) {
-      responseCache.clear();
+    
+    // Auth operations (login, logout, OTP, password reset) do not mutate LMS entity data!
+    if (url.includes('/auth/login') || url.includes('/auth/logout') || url.includes('/auth/otp') || url.includes('/auth/forgot-password') || url.includes('/auth/reset-password')) {
+      return next();
+    }
+
+    if (!url.includes('/notifications') && !url.includes('/progress') && !url.includes('/auto-rules')) {
+      const orgId = req.user ? String(req.user.organizationId?.id || req.user.organizationId?._id || req.user.organizationId || '') : '';
+      
+      if (orgId) {
+        for (const key of responseCache.keys()) {
+          if (key.startsWith(`lms:${orgId}:`)) {
+            responseCache.delete(key);
+          }
+        }
+        await flushRedisCache(`lms:${orgId}:*`).catch(() => {});
+      } else {
+        responseCache.clear();
+        await flushRedisCache('lms:*').catch(() => {});
+      }
     }
   }
   next();

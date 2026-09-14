@@ -12,22 +12,19 @@ const getOrgLicenseStats = async (organizationId, tx = prisma) => {
 
   const cleanOrgId = String(organizationId);
 
-  const org = await tx.organization.findUnique({
-    where: { id: cleanOrgId },
-    select: { id: true, name: true, totalLicenses: true }
-  });
-
-  if (!org) {
-    throw new ApiError(404, 'Organization not found');
-  }
-
-  const usedLicenses = await tx.user.count({
-    where: {
-      organizationId: cleanOrgId,
-      role: { in: ['Admin', 'Instructor', 'Employee'] },
-      status: 'active'
-    }
-  });
+  const [org, usedLicenses] = await Promise.all([
+    tx.organization.findUnique({
+      where: { id: cleanOrgId },
+      select: { id: true, name: true, totalLicenses: true }
+    }),
+    tx.user.count({
+      where: {
+        organizationId: cleanOrgId,
+        role: { in: ['Admin', 'Instructor', 'Employee'] },
+        status: 'active'
+      }
+    })
+  ]);
 
   const totalLicenses = typeof org.totalLicenses === 'number' && !isNaN(org.totalLicenses) ? org.totalLicenses : 5;
   const remainingLicenses = Math.max(0, totalLicenses - usedLicenses);

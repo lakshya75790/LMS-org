@@ -102,6 +102,7 @@ model User {
   certificates           Certificate[]          @relation("EmployeeCertificates")
 
   @@index([organizationId, role])
+  @@index([organizationId, role, status])
   @@index([organizationId, role, createdAt])
   @@index([organizationId, role, name])
   @@index([organizationId, departmentId])
@@ -339,6 +340,8 @@ model Assignment {
   subSections    TrainingSubSection[]
 
   @@index([trainingId])
+  @@index([createdBy])
+  @@index([organizationId, createdBy])
   @@map("assignments")
 }
 
@@ -367,6 +370,7 @@ model AssignmentSubmission {
   reviewer             User?               @relation("ReviewerSubmissions", fields: [reviewedBy], references: [id], onDelete: SetNull)
 
   @@index([assignmentId, status])
+  @@index([assignmentId, submittedAt])
   @@index([employeeId])
   @@index([employeeId, status, reviewedAt])
   @@map("assignment_submissions")
@@ -407,6 +411,7 @@ model TrainingAssignment {
   @@index([trainingId])
   @@index([organizationId, status])
   @@index([organizationId, trainingId])
+  @@index([organizationId, trainingId, assignedDate])
   @@index([employeeId, organizationId])
   @@index([employeeId, assignedDate])
   @@index([employeeId, organizationId, assignedDate])
@@ -487,7 +492,9 @@ model Notification {
   organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, recipientId, isRead])
+  @@index([organizationId, recipientId, isRead, createdAt])
   @@index([organizationId, role, isRead])
+  @@index([organizationId, role, isRead, createdAt])
   @@index([organizationId, createdAt])
   @@index([recipientId, createdAt])
   @@map("notifications")
@@ -511,6 +518,7 @@ model AuditLog {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, timestamp])
+  @@index([organizationId, createdAt])
   @@map("audit_logs")
 }
 

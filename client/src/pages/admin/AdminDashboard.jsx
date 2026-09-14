@@ -176,7 +176,7 @@ export const AdminDashboard = () => {
       {/* SKELETON LOADING STATE */}
       {loading ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
             {[1, 2, 3, 4, 5].map((n) => (
               <div key={n} className="p-5 rounded-2xl bg-white border border-slate-200 animate-pulse space-y-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-200" />
@@ -192,7 +192,7 @@ export const AdminDashboard = () => {
       ) : (
         <>
           {/* SECTION 2: 5 QUICK STATS CARDS GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
             {/* Card 1: Total Licenses Usage (Visually Highlighted with Adaptive States) */}
             {(() => {
               const total = quickStats.totalLicenses ?? 5;

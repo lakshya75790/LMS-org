@@ -65,10 +65,28 @@ async function delRedisCache(key) {
   }
 }
 
+/**
+ * Flush cached objects from Upstash Redis matching pattern
+ */
+async function flushRedisCache(pattern = 'lms:*') {
+  if (!isRedisEnabled || !redis) return false;
+  try {
+    const keys = await redis.keys(pattern);
+    if (keys && keys.length > 0) {
+      await redis.del(...keys);
+    }
+    return true;
+  } catch (err) {
+    console.warn(`[Redis Error] FLUSH failed for pattern "${pattern}":`, err.message);
+    return false;
+  }
+}
+
 module.exports = {
   redis,
   isRedisEnabled,
   getRedisCache,
   setRedisCache,
-  delRedisCache
+  delRedisCache,
+  flushRedisCache
 };
