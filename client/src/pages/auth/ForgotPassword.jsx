@@ -116,7 +116,7 @@ export const ForgotPassword = () => {
   };
 
   return (
-    <div className="bg-white p-8 sm:p-10 rounded-3xl border border-slate-200 shadow-xl space-y-6 animate-fade-in">
+    <div className="bg-white p-6 sm:p-8 md:p-10 rounded-3xl border border-slate-200 shadow-xl space-y-6 animate-auth-form-switch">
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center space-x-2">

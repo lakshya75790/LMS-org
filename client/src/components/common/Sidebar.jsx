@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -24,6 +24,26 @@ import {
 
 export const Sidebar = ({ mobileOpen = false, onCloseMobile = () => {} }) => {
   const { user, logout } = useAuth();
+  const [shouldRender, setShouldRender] = useState(mobileOpen);
+  const [isAnimatedIn, setIsAnimatedIn] = useState(false);
+
+  useEffect(() => {
+    if (mobileOpen) {
+      setShouldRender(true);
+      const timer = requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsAnimatedIn(true);
+        });
+      });
+      return () => cancelAnimationFrame(timer);
+    } else {
+      setIsAnimatedIn(false);
+      const timeout = setTimeout(() => {
+        setShouldRender(false);
+      }, 300);
+      return () => clearTimeout(timeout);
+    }
+  }, [mobileOpen]);
 
   if (!user) return null;
 
@@ -151,14 +171,20 @@ export const Sidebar = ({ mobileOpen = false, onCloseMobile = () => {} }) => {
         {sidebarContent}
       </aside>
 
-      {/* Mobile/Tablet Drawer Overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 xl:hidden flex">
+      {/* Mobile/Tablet Drawer Overlay with Smooth 300ms Slide & Fade Transitions */}
+      {shouldRender && (
+        <div className="fixed inset-0 z-50 xl:hidden flex overflow-hidden">
           <div
-            className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
+            className={`fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity duration-300 ease-in-out ${
+              isAnimatedIn ? 'opacity-100' : 'opacity-0'
+            }`}
             onClick={onCloseMobile}
           />
-          <div className="relative flex-1 max-w-xs w-full h-full z-10 shadow-2xl animate-fade-in">
+          <div
+            className={`relative flex-1 max-w-xs w-full h-full z-10 shadow-2xl transform transition-transform duration-300 ease-out ${
+              isAnimatedIn ? 'translate-x-0' : '-translate-x-full'
+            }`}
+          >
             {sidebarContent}
           </div>
         </div>

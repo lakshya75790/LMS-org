@@ -31,7 +31,7 @@ export const EmployeeRegister = () => {
   };
 
   return (
-    <div className="bg-white p-8 sm:p-10 rounded-3xl border border-slate-200 shadow-xl space-y-6 animate-fade-in">
+    <div className="bg-white p-6 sm:p-8 md:p-10 rounded-3xl border border-slate-200 shadow-xl space-y-6 animate-auth-form-switch">
       <div className="space-y-2">
         <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Employee Registration</h2>
         <p className="text-xs text-slate-500 leading-relaxed">

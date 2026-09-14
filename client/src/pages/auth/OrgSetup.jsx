@@ -32,7 +32,7 @@ export const OrgSetup = () => {
   };
 
   return (
-    <div className="bg-white p-8 sm:p-10 rounded-3xl border border-slate-200 shadow-xl space-y-6 animate-fade-in">
+    <div className="bg-white p-6 sm:p-8 md:p-10 rounded-3xl border border-slate-200 shadow-xl space-y-6 animate-auth-form-switch">
       <div className="space-y-2">
         <div className="inline-flex items-center px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-xs font-semibold text-purple-700">
           <Shield className="w-3.5 h-3.5 mr-1.5 text-purple-600" /> Initial Organization Setup
